@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Yandex Tracker Notifier & Dashboard",
+  "version": "1.0.0",
+  "description": "Уведомления и дашборд для Яндекс Трекера по изменениям статусов",
+  "permissions": [
+    "alarms",
+    "notifications",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.tracker.yandex.net/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "32": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  }
+}

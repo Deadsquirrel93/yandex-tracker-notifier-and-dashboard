@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки Yandex Tracker Notifier</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+  <h1>Настройки</h1>
+
+  <div class="section">
+    <h2>Авторизация</h2>
+    <div class="form-group">
+      <label>OAuth Token <span class="tooltip"
+          title="Создайте приложение на Яндекс OAuth (Веб-сервисы) с правами: 1) tracker:read (для работы) 2) tracker:write (для таймера)">?</span></label>
+      <input type="password" id="oauthToken" placeholder="y0_AgAAAA...">
+    </div>
+    <div class="form-group">
+      <label>Org ID <span class="tooltip"
+          title="Можно найти в URL трекера (ограничение по организации) или в настройках Yandex Cloud/360">?</span></label>
+      <input type="text" id="orgId" placeholder="123456">
+    </div>
+    <div class="form-group">
+      <label>Тип организации</label>
+      <div class="radio-group">
+        <label><input type="radio" name="orgType" id="orgType360" value="360" checked> Яндекс 360</label>
+        <label><input type="radio" name="orgType" id="orgTypeCloud" value="cloud"> Yandex Cloud</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Системные настройки</h2>
+    <div class="form-group">
+      <label>Язык статусов</label>
+      <select id="language">
+        <option value="ru" selected>Русский</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Интервал проверки (минуты)</label>
+      <select id="interval">
+        <option value="1">1</option>
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="30">30</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Управление статусами (кешируется на 24 часа)</h2>
+    <button id="btnLoadStatuses">Загрузить/Обновить статусы</button>
+    <div class="info-text" id="statusesInfo"></div>
+  </div>
+
+  <div class="section">
+    <h2>Таймер задач (Учет времени)</h2>
+    <div class="form-group">
+      <label>Округлять до</label>
+      <select id="timerRoundingInterval">
+        <option value="1" selected>1 минуты (без округления)</option>
+        <option value="10">10 минут</option>
+        <option value="30">30 минут</option>
+        <option value="60">1 часа</option>
+        <option value="240">Пол дня (4 часа)</option>
+        <option value="480">1 дня (8 часов)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Направление округления</label>
+      <div class="radio-group">
+        <label><input type="radio" name="timerRoundingDirection" id="roundMath" value="math" checked> Математическое
+          (ближайшее)</label>
+        <label><input type="radio" name="timerRoundingDirection" id="roundUp" value="up"> В большую сторону</label>
+        <label><input type="radio" name="timerRoundingDirection" id="roundDown" value="down"> В меньшую сторону</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Правила уведомлений</h2>
+    <div id="rulesContainer"></div>
+    <button id="btnAddRule" style="margin-top: 10px;">Добавить правило</button>
+  </div>
+
+  <div class="section">
+    <h2>Настройки Дашборда</h2>
+    <p class="info-text">Выберите роли для отображения задач на дашборде:</p>
+    <div id="dashboardRolesContainer" class="dashboard-statuses">
+      <label><input type="checkbox" value="Assignee" checked> Исполнитель</label>
+      <label><input type="checkbox" value="Author" checked> Автор</label>
+      <label><input type="checkbox" value="Followers" checked> Наблюдатель</label>
+    </div>
+    <p class="info-text" style="margin-top: 15px;">Выберите статусы, которые будут показаны при клике на расширение:</p>
+    <div id="dashboardStatusesContainer" class="dashboard-statuses"></div>
+  </div>
+
+  <button id="btnSave" style="width: 100%; padding: 12px; font-size: 16px;">Сохранить настройки</button>
+  <div id="statusMessage" class="status-message"></div>
+
+  <script src="options.js"></script>
+</body>
+
+</html>
