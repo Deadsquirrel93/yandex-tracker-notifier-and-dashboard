@@ -1,5 +1,0 @@
-*.pem
-.DS_Store
-*.crx
-.agents/
-.gitignore
