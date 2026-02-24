@@ -1,0 +1,35 @@
+.yt-quote-btn {
+  position: absolute;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #ffcc00; /* Yandex yellow */
+  color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s ease-in-out, background-color 0.2s;
+  user-select: none;
+}
+
+.yt-quote-btn:hover {
+  background-color: #ffdb4d;
+  transform: scale(1.02);
+}
+
+.yt-quote-btn:active {
+  transform: scale(0.98);
+}
+
+.yt-quote-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}

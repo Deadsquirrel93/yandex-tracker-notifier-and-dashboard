@@ -11,6 +11,16 @@
   "host_permissions": [
     "https://api.tracker.yandex.net/*"
   ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://tracker.yandex.ru/*",
+        "https://tracker.yandex.com/*"
+      ],
+      "css": ["content.css"],
+      "js": ["content.js"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
