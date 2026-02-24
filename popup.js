@@ -4,7 +4,9 @@ const errorMsg = document.getElementById('error');
 
 // Timer Elements
 const timerTask = document.getElementById('timerTask');
+const timerHours = document.getElementById('timerHours');
 const timerMinutes = document.getElementById('timerMinutes');
+const timerSeconds = document.getElementById('timerSeconds');
 const btnTimerStart = document.getElementById('btnTimerStart');
 const btnTimerPause = document.getElementById('btnTimerPause');
 const btnTimerStop = document.getElementById('btnTimerStop');
@@ -19,27 +21,41 @@ function renderTimerUI(state) {
     if (state.isRunning) {
         btnTimerStart.style.display = 'none';
         btnTimerPause.style.display = 'flex';
+        timerHours.disabled = true;
         timerMinutes.disabled = true;
+        timerSeconds.disabled = true;
         timerTask.disabled = true;
     } else {
         btnTimerStart.style.display = 'flex';
         btnTimerPause.style.display = 'none';
+        timerHours.disabled = false;
         timerMinutes.disabled = false;
+        timerSeconds.disabled = false;
         timerTask.disabled = false;
     }
     timerTask.value = state.taskKey || '';
-    // Calculate current accumulated + elapsed + previously spent
-    let sessionMins = state.accumulatedMinutes || 0;
+
+    if (state.accumulatedSeconds === undefined && state.accumulatedMinutes !== undefined) {
+        state.accumulatedSeconds = state.accumulatedMinutes * 60;
+    }
+
+    let sessionSecs = state.accumulatedSeconds || 0;
     if (state.isRunning && state.startTime) {
-        sessionMins += Math.floor((Date.now() - state.startTime) / 60000);
+        sessionSecs += Math.floor((Date.now() - state.startTime) / 1000);
     }
 
     let previousMins = state.previouslySpentMinutes || 0;
-    let totalMins = previousMins + sessionMins;
+    let totalSecs = (previousMins * 60) + sessionSecs;
+
+    let h = Math.floor(totalSecs / 3600);
+    let m = Math.floor((totalSecs % 3600) / 60);
+    let s = totalSecs % 60;
 
     // Only update if not typing manually
-    if (document.activeElement !== timerMinutes) {
-        timerMinutes.value = totalMins;
+    if (document.activeElement !== timerHours && document.activeElement !== timerMinutes && document.activeElement !== timerSeconds) {
+        timerHours.value = h.toString().padStart(2, '0');
+        timerMinutes.value = m.toString().padStart(2, '0');
+        timerSeconds.value = s.toString().padStart(2, '0');
     }
 
     if (previousMins > 0) {
@@ -54,7 +70,14 @@ async function startTimerUIUpdate() {
     uiInterval = setInterval(async () => {
         const { timerState } = await chrome.storage.local.get(['timerState']);
         if (timerState && timerState.isRunning) renderTimerUI(timerState);
-    }, 10000); // 10 sec update
+    }, 1000); // 1 sec update
+}
+
+function getManualTotalSeconds() {
+    let h = parseInt(timerHours.value, 10) || 0;
+    let m = parseInt(timerMinutes.value, 10) || 0;
+    let s = parseInt(timerSeconds.value, 10) || 0;
+    return (h * 3600) + (m * 60) + s;
 }
 
 async function handleTimerStart() {
@@ -66,29 +89,25 @@ async function handleTimerStart() {
 
     const taskKey = extractTaskKey(rawTask);
 
-    // Check if we already have a state for this task
     const { timerState } = await chrome.storage.local.get(['timerState']);
     let previousMins = 0;
-    let manualSessionMins = 0;
+    let manualSessionSecs = 0;
+
+    let displayedTotalSecs = getManualTotalSeconds();
 
     if (timerState && timerState.taskKey === taskKey && !timerState.isRunning) {
         previousMins = timerState.previouslySpentMinutes || 0;
-        let displayedTotal = parseInt(timerMinutes.value, 10);
-        if (isNaN(displayedTotal) || displayedTotal < 0) displayedTotal = 0;
-        manualSessionMins = Math.max(0, displayedTotal - previousMins);
+        manualSessionSecs = Math.max(0, displayedTotalSecs - (previousMins * 60));
     } else {
-        // First start for this task, force fetch from tracker
         previousMins = await fetchSpentTime(taskKey);
-        let displayedTotal = parseInt(timerMinutes.value, 10);
-        if (isNaN(displayedTotal) || displayedTotal < 0) displayedTotal = 0;
-        manualSessionMins = Math.max(0, displayedTotal - previousMins);
+        manualSessionSecs = Math.max(0, displayedTotalSecs - (previousMins * 60));
     }
 
     const state = {
         isRunning: true,
         taskKey: taskKey,
         startTime: Date.now(),
-        accumulatedMinutes: manualSessionMins,
+        accumulatedSeconds: manualSessionSecs,
         previouslySpentMinutes: previousMins
     };
 
@@ -100,8 +119,11 @@ async function handleTimerStart() {
 async function handleTimerPause() {
     const { timerState } = await chrome.storage.local.get(['timerState']);
     if (timerState && timerState.isRunning) {
-        const elapsed = Math.floor((Date.now() - timerState.startTime) / 60000);
-        timerState.accumulatedMinutes += elapsed;
+        if (timerState.accumulatedSeconds === undefined && timerState.accumulatedMinutes !== undefined) {
+            timerState.accumulatedSeconds = timerState.accumulatedMinutes * 60;
+        }
+        const elapsed = Math.floor((Date.now() - timerState.startTime) / 1000);
+        timerState.accumulatedSeconds = (timerState.accumulatedSeconds || 0) + elapsed;
         timerState.isRunning = false;
         timerState.startTime = null;
         await chrome.storage.local.set({ timerState });
@@ -111,8 +133,8 @@ async function handleTimerPause() {
 }
 
 async function handleTimerReset() {
-    await chrome.storage.local.set({ timerState: { isRunning: false, taskKey: '', startTime: null, accumulatedMinutes: 0, previouslySpentMinutes: 0 } });
-    renderTimerUI({ isRunning: false, taskKey: '', startTime: null, accumulatedMinutes: 0, previouslySpentMinutes: 0 });
+    await chrome.storage.local.set({ timerState: { isRunning: false, taskKey: '', startTime: null, accumulatedSeconds: 0, previouslySpentMinutes: 0 } });
+    renderTimerUI({ isRunning: false, taskKey: '', startTime: null, accumulatedSeconds: 0, previouslySpentMinutes: 0 });
     if (uiInterval) clearInterval(uiInterval);
 }
 
@@ -153,18 +175,20 @@ async function handleTimerStop() {
     ]);
 
     const state = data.timerState;
-    if (!state || !state.taskKey || state.accumulatedMinutes <= 0) {
+    if (!state || !state.taskKey || state.accumulatedSeconds <= 0) {
         showTimerStatus("Таймер пуст", "error");
         return;
     }
 
-    const rawSessionMins = state.accumulatedMinutes;
+    const rawSessionMins = state.accumulatedSeconds / 60;
     const intervalStr = data.timerRoundingInterval || "1";
     const dir = data.timerRoundingDirection || "math";
 
     const roundedMins = roundMinutes(rawSessionMins, parseInt(intervalStr, 10), dir);
     if (roundedMins <= 0) {
-        showTimerStatus(`Время сессии слишком мало (${rawSessionMins}м)`, "error");
+        const mm = Math.floor(state.accumulatedSeconds / 60);
+        const ss = state.accumulatedSeconds % 60;
+        showTimerStatus(`Время сессии слишком мало (${mm}м ${ss}с)`, "error");
         return;
     }
 
@@ -249,7 +273,7 @@ async function fetchSpentTime(taskKey) {
 
 async function initTimer() {
     const data = await chrome.storage.local.get(['timerState']);
-    const state = data.timerState || { isRunning: false, taskKey: '', startTime: null, accumulatedMinutes: 0, previouslySpentMinutes: 0 };
+    const state = data.timerState || { isRunning: false, taskKey: '', startTime: null, accumulatedSeconds: 0, previouslySpentMinutes: 0 };
     renderTimerUI(state);
     if (state.isRunning) startTimerUIUpdate();
 
@@ -273,7 +297,7 @@ async function initTimer() {
                 isRunning: false,
                 taskKey: key,
                 startTime: null,
-                accumulatedMinutes: 0,
+                accumulatedSeconds: 0,
                 previouslySpentMinutes: spentMins
             };
             await chrome.storage.local.set({ timerState: newState });
@@ -282,20 +306,26 @@ async function initTimer() {
     });
 
     // Allow manual edits if paused
-    timerMinutes.addEventListener('change', async () => {
+    const handleManualTimeEdit = async () => {
         const { timerState } = await chrome.storage.local.get(['timerState']);
         if (!timerState || !timerState.isRunning) {
-            let displayedMins = parseInt(timerMinutes.value, 10) || 0;
-            if (displayedMins < 0) displayedMins = 0;
+            let displayedTotalSecs = getManualTotalSeconds();
+            if (displayedTotalSecs < 0) displayedTotalSecs = 0;
 
-            const prev = timerState ? (timerState.previouslySpentMinutes || 0) : 0;
-            const newAccumulated = Math.max(0, displayedMins - prev);
+            const prevMins = timerState ? (timerState.previouslySpentMinutes || 0) : 0;
+            const newAccumulatedSecs = Math.max(0, displayedTotalSecs - (prevMins * 60));
 
             await chrome.storage.local.set({
-                timerState: { ...timerState, accumulatedMinutes: newAccumulated }
+                timerState: { ...timerState, accumulatedSeconds: newAccumulatedSecs }
             });
+            // Re-render to format padStart
+            renderTimerUI({ ...timerState, accumulatedSeconds: newAccumulatedSecs });
         }
-    });
+    };
+
+    timerHours.addEventListener('change', handleManualTimeEdit);
+    timerMinutes.addEventListener('change', handleManualTimeEdit);
+    timerSeconds.addEventListener('change', handleManualTimeEdit);
 }
 
 async function init() {
@@ -305,6 +335,10 @@ async function init() {
         if (!data.oauthToken || !data.orgId) {
             throw new Error("Необходима авторизация. Откройте настройки.");
         }
+
+        // Показываем таймер только если есть токен и оргИД
+        document.getElementById('timerSection').style.display = 'flex';
+
         if (!data.dashboardStatuses || data.dashboardStatuses.length === 0) {
             throw new Error("Не выбраны статусы для отображения. Откройте настройки.");
         }
@@ -314,9 +348,18 @@ async function init() {
             throw new Error("Не выбраны роли для отображения. Откройте настройки.");
         }
 
+        const roleQueries = {
+            'Assignee': 'Assignee: me()',
+            'Author': 'Author: me()',
+            'Followers': 'Followers: me()'
+        };
+        const roleEmojis = {
+            'Assignee': '👨‍💻',
+            'Author': '📝',
+            'Followers': '👀'
+        };
+
         const statusesStr = data.dashboardStatuses.map(s => `"${s}"`).join(', ');
-        const rolesStr = roles.map(r => `${r}: me()`).join(' OR ');
-        const oql = `Status: ${statusesStr} AND (${rolesStr})`;
 
         const headers = {
             'Authorization': `OAuth ${data.oauthToken}`,
@@ -326,40 +369,104 @@ async function init() {
         if (data.orgType === 'cloud') headers['X-Cloud-Org-ID'] = data.orgId;
         else headers['X-Org-ID'] = data.orgId;
 
-        const response = await fetch('https://api.tracker.yandex.net/v2/issues/_search', {
-            method: 'POST', headers, body: JSON.stringify({ query: oql })
-        });
+        // Делаем запросы последовательно, чтобы избежать ошибки 429 (Too Many Requests) от Яндекса
+        const results = [];
+        for (const role of roles) {
+            const oql = `Status: ${statusesStr} AND ${roleQueries[role]}`;
+            const response = await fetch('https://api.tracker.yandex.net/v2/issues/_search', {
+                method: 'POST', headers, body: JSON.stringify({ query: oql })
+            });
 
-        if (!response.ok) throw new Error(`Ошибка API: ${response.status}`);
-        const issues = await response.json();
+            if (response.status === 429) {
+                // Если все равно словили 429, пробуем подождать секунду и повторить 1 раз
+                await new Promise(res => setTimeout(res, 1000));
+                const retryResponse = await fetch('https://api.tracker.yandex.net/v2/issues/_search', {
+                    method: 'POST', headers, body: JSON.stringify({ query: oql })
+                });
+                if (!retryResponse.ok) throw new Error(`Ошибка API (Rate Limit): ${retryResponse.status}`);
+                const issues = await retryResponse.json();
+                results.push({ role, issues });
+            } else if (!response.ok) {
+                throw new Error(`Ошибка API: ${response.status}`);
+            } else {
+                const issues = await response.json();
+                results.push({ role, issues });
+            }
+        }
 
         const grouped = {};
-        data.dashboardStatuses.forEach(s => grouped[s] = 0);
+        data.dashboardStatuses.forEach(s => {
+            grouped[s] = {};
+            roles.forEach(r => grouped[s][r] = 0);
+        });
 
-        issues.forEach(issue => {
-            const statusName = issue.status?.display || issue.status?.name || 'Unknown';
-            if (grouped[statusName] !== undefined) grouped[statusName]++;
-            else grouped[statusName] = 1;
+        let totalIssuesFound = 0;
+
+        results.forEach(({ role, issues }) => {
+            issues.forEach(issue => {
+                const statusName = issue.status?.display || issue.status?.name || 'Unknown';
+                if (grouped[statusName] !== undefined && grouped[statusName][role] !== undefined) {
+                    grouped[statusName][role]++;
+                    totalIssuesFound++;
+                }
+            });
         });
 
         spinner.style.display = 'none';
 
         Object.keys(grouped).forEach(status => {
-            if (grouped[status] === 0) return;
+            const roleCounts = grouped[status];
+            const hasAny = roles.some(r => roleCounts[r] > 0);
+            if (!hasAny) return;
 
             const row = document.createElement('div');
             row.className = 'status-row';
-            row.innerHTML = `<span class="status-name">${status}</span><span class="status-count">${grouped[status]}</span>`;
 
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'status-name';
+            nameSpan.textContent = status;
+            row.appendChild(nameSpan);
+
+            const rolesDiv = document.createElement('div');
+            rolesDiv.className = 'status-roles';
+
+            roles.forEach(role => {
+                if (roleCounts[role] > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'role-badge';
+
+                    let roleTitle = '';
+                    if (role === 'Assignee') roleTitle = 'Исполнитель';
+                    else if (role === 'Author') roleTitle = 'Автор';
+                    else if (role === 'Followers') roleTitle = 'Наблюдатель';
+
+                    badge.title = roleTitle;
+                    badge.textContent = `${roleEmojis[role]} ${roleCounts[role]}`;
+
+                    badge.onclick = (e) => {
+                        e.stopPropagation();
+                        const rowOql = `Status: "${status}" AND ${roleQueries[role]}`;
+                        const url = `https://tracker.yandex.ru/issues?_q=${encodeURIComponent(rowOql)}`;
+                        chrome.tabs.create({ url });
+                    };
+                    rolesDiv.appendChild(badge);
+                }
+            });
+
+            row.appendChild(rolesDiv);
+
+            // Клик по всей строке - открываем все выбранные роли для этого статуса
             row.onclick = () => {
-                const rowOql = `Status: "${status}" AND (${rolesStr})`;
+                const rolesOrStr = roles.map(r => roleQueries[r]).join(' OR ');
+                const rowOql = `Status: "${status}" AND (${rolesOrStr})`;
                 const url = `https://tracker.yandex.ru/issues?_q=${encodeURIComponent(rowOql)}`;
                 chrome.tabs.create({ url });
             };
+
             content.appendChild(row);
         });
 
-        if (content.children.length === 0) content.textContent = "Нет задач в выбранных статусах.";
+        if (totalIssuesFound === 0) content.textContent = "Нет задач в выбранных статусах.";
 
     } catch (err) {
         spinner.style.display = 'none';

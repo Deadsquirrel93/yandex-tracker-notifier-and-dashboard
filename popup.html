@@ -20,15 +20,21 @@
     </div>
     <div class="container">
         <!-- ТАЙМЕР -->
-        <div class="timer-section">
+        <div class="timer-section" id="timerSection" style="display: none;">
             <input type="text" id="timerTask" placeholder="Ссылка на задачу..." class="timer-input">
 
             <div class="timer-display">
-                <input type="number" id="timerMinutes" value="0" min="0" class="timer-time" disabled>
-                <div class="timer-meta">
-                    <span class="timer-unit">мин</span>
-                    <span class="timer-spent-info" id="timerSpentInfo"></span>
-                </div>
+                <input type="text" inputmode="numeric" id="timerHours" value="00" class="timer-time" placeholder="00"
+                    disabled>
+                <span class="timer-colon">:</span>
+                <input type="text" inputmode="numeric" id="timerMinutes" value="00" class="timer-time" placeholder="00"
+                    disabled>
+                <span class="timer-colon">:</span>
+                <input type="text" inputmode="numeric" id="timerSeconds" value="00" class="timer-time" placeholder="00"
+                    disabled>
+            </div>
+            <div class="timer-meta" style="text-align: center; margin-top: 4px;">
+                <span class="timer-spent-info" id="timerSpentInfo"></span>
             </div>
 
             <div class="timer-controls">
