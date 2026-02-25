@@ -10,6 +10,7 @@ const elements = {
   statusesInfo: document.getElementById('statusesInfo'),
   rulesContainer: document.getElementById('rulesContainer'),
   btnAddRule: document.getElementById('btnAddRule'),
+  quoteEnabled: document.getElementById('quoteEnabled'),
   timerRoundingInterval: document.getElementById('timerRoundingInterval'),
   roundMath: document.getElementById('roundMath'),
   roundUp: document.getElementById('roundUp'),
@@ -25,6 +26,7 @@ let cachedStatuses = [];
 async function loadSettings() {
   const data = await chrome.storage.local.get([
     'oauthToken', 'orgId', 'orgType', 'language', 'interval',
+    'quoteEnabled',
     'timerRoundingInterval', 'timerRoundingDirection',
     'cachedStatuses', 'statusesTimestamp', 'rules', 'dashboardStatuses', 'dashboardRoles'
   ]);
@@ -37,6 +39,7 @@ async function loadSettings() {
   if (data.language) elements.language.value = data.language;
   if (data.interval) elements.interval.value = data.interval;
 
+  if (data.quoteEnabled !== undefined) elements.quoteEnabled.checked = data.quoteEnabled;
   if (data.timerRoundingInterval) elements.timerRoundingInterval.value = data.timerRoundingInterval;
   if (data.timerRoundingDirection === 'up') elements.roundUp.checked = true;
   else if (data.timerRoundingDirection === 'down') elements.roundDown.checked = true;
@@ -215,6 +218,8 @@ async function saveSettings() {
   const language = elements.language.value;
   const interval = parseInt(elements.interval.value, 10);
 
+  const quoteEnabled = elements.quoteEnabled.checked;
+
   const rules = getRulesFromDOM();
   const dashboardStatuses = getDashboardStatusesFromDOM();
   const dashboardRoles = getDashboardRolesFromDOM();
@@ -226,6 +231,7 @@ async function saveSettings() {
 
   await chrome.storage.local.set({
     oauthToken, orgId, orgType, language, interval,
+    quoteEnabled,
     rules, dashboardStatuses, dashboardRoles,
     timerRoundingInterval, timerRoundingDirection
   });

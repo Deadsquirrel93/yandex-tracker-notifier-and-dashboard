@@ -2,6 +2,27 @@
 
 let quoteButton = null;
 
+// --- CONFIGURATION SYNC ---
+const extensionConfig = {
+    quoteEnabled: true
+};
+
+// Initialize config from storage
+chrome.storage.local.get(['quoteEnabled'], (res) => {
+    if (res.quoteEnabled !== undefined) extensionConfig.quoteEnabled = res.quoteEnabled;
+});
+
+// Listen for settings changes from options page
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+        if (changes.quoteEnabled) {
+            extensionConfig.quoteEnabled = changes.quoteEnabled.newValue;
+            if (!extensionConfig.quoteEnabled) removeQuoteButton();
+        }
+    }
+});
+// --------------------------
+
 // Function to create SVG element securely without innerHTML
 function createIconElement() {
     const svgNS = "http://www.w3.org/2000/svg";
@@ -43,6 +64,18 @@ function removeQuoteButton() {
 }
 
 function handleSelection() {
+    if (!extensionConfig.quoteEnabled) return;
+
+    // Only enable quoting on detailed issue pages, not on the dashboard modals
+    // Detailed pages have .page-issue__summary but lack .issue-summary_compactView
+    const isModal = document.querySelector('.issue-summary_compactView');
+    const isDetailedIssue = document.querySelector('.page-issue__summary');
+
+    if (isModal || !isDetailedIssue) {
+        removeQuoteButton();
+        return;
+    }
+
     const selection = window.getSelection();
     const text = selection.toString().trim();
 
@@ -222,3 +255,25 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('scroll', () => {
     removeQuoteButton();
 }, { passive: true });
+
+// --- DASHBOARD AUTO-REFRESH LOGIC ---
+
+// We want to detect when a user clicks a status transition button (e.g. "В работе", "Решено") 
+// inside a modal while they are on the dashboard, and auto-refresh the widgets.
+// Tracker uses React, meaning the DOM updates dynamically. 
+
+function callReactClick(el) {
+    if (!el) return false;
+    const reactKey = Object.keys(el).find(k => k.startsWith('__reactProps$') || k.startsWith('__reactEventHandlers$'));
+    if (reactKey && el[reactKey] && typeof el[reactKey].onClick === 'function') {
+        el[reactKey].onClick({
+            preventDefault: () => { },
+            stopPropagation: () => { },
+            nativeEvent: { stopPropagation: () => { }, stopImmediatePropagation: () => { } },
+            target: el,
+            currentTarget: el
+        });
+        return true;
+    }
+    return false;
+}
