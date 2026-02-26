@@ -137,8 +137,8 @@ async function handleQuoteClick(e) {
 
     if (!text) return;
 
-    // Format as a markdown blockquote (no trailing double newlines, just the quote)
-    const quotedText = text.split('\n').map(line => `> ${line}`).join('\n') + '\n';
+    // Format as a markdown blockquote (add an extra newline so the next typed line is not a quote)
+    const quotedText = text.split('\n').map(line => `> ${line}`).join('\n') + '\n\n';
 
     // Try to find the comment input field
     // Yandex Tracker typically uses ProseMirror or CodeMirror for its rich text editor
