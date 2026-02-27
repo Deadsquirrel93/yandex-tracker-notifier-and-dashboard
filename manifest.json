@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Yandex Tracker Notifier & Dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Уведомления и дашборд для Яндекс Трекера по изменениям статусов",
   "permissions": [
     "alarms",
@@ -17,8 +17,12 @@
         "https://tracker.yandex.ru/*",
         "https://tracker.yandex.com/*"
       ],
-      "css": ["content.css"],
-      "js": ["content.js"]
+      "css": [
+        "content.css"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {
